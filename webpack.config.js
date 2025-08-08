@@ -10,7 +10,7 @@ module.exports = {
     output: {
         filename: 'js/[name].bundle.js',
         path: path.resolve(__dirname, 'dist'),
-        clean: true, // очищає dist перед збіркою
+        clean: true,
     },
     plugins: [
         new CopyPlugin({
@@ -24,4 +24,13 @@ module.exports = {
     module: {
         rules: [],
     },
+    devServer: {
+        static: {
+            directory: path.join(__dirname, 'dist'),
+        },
+        compress: true,
+        port: 3000,
+        open: true,
+    }
+
 };
