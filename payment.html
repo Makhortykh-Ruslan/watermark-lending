@@ -73,31 +73,39 @@
 								<div class="form-payment__items">
 									<div class="form-payment__content">
 										<div class="form-payment__label">Selected plan</div>
-										<div class="form-payment__line">
+
+										<div id="basic-plan" class="form-payment__line">
 											<div class="form-payment__wrap">
 												<div class="form-payment__icon --icon-check-buy"></div>
 												<div class="form-payment__sel-text">Basic plan</div>
 											</div>
 											<div class="form-payment__price">
 												$19.99
-												<span>/mo</span>
+												<span>/year</span>
 											</div>
 										</div>
+
+										<div id="annual-plan"  class="form-payment__line">
+											<div class="form-payment__wrap">
+												<div class="form-payment__icon --icon-check-buy"></div>
+												<div class="form-payment__sel-text">Annual plan</div>
+											</div>
+											<div class="form-payment__price">
+												$39.99
+											</div>
+										</div>
+
 									</div>
 									<div class="form-buy__details details">
 										<div class="details__label">Buyer details</div>
 										<div class="details__items">
 											<div class="details__text">Email</div>
-											<div class="details__email">emailactivate@gmail.com</div>
-										</div>
-										<div class="details__items">
-											<div class="details__text">Email</div>
-											<div class="details__email">emailactivate@gmail.com</div>
+											<div id="email-card" class="details__email">-</div>
 										</div>
 									</div>
 								</div>
 								<div class="form-payment__actions actions-form">
-									<a href="#" data-fls-button="" class="actions-form__button button button--apply">Confirm purchase</a>
+									<a id="confirm" data-fls-button="" class="actions-form__button button button--apply">Confirm purchase</a>
 									<div class="actions-form__text">You will not be charged immediately</div>
 								</div>
 							</form>

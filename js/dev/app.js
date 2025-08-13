@@ -174,9 +174,11 @@ document.querySelector("[data-fls-menu]") ? window.addEventListener("load", menu
 document.body.style.paddingRight = "0px";
 
 let resendTimer = null;
-let code = null;
 
-const TIMER_DURATION = 30;
+const btn = document.querySelector('#button-send-again');
+const countdown = document.querySelector('#countdown');
+
+const TIMER_DURATION = 5;
 
 function formatTime(seconds) {
   const minutes = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -185,32 +187,36 @@ function formatTime(seconds) {
 }
 
 function startTimer() {
-  const btn = document.querySelector('#btn-send-again');
-  const countdown = document.querySelector('#countdown');
+  let secondsLeft = TIMER_DURATION || 30;
 
-  let secondsLeft = TIMER_DURATION;
-  countdown.textContent = formatTime(secondsLeft);
+  countdown.innerText = formatTime(secondsLeft);
 
   resendTimer = setInterval(() => {
     secondsLeft--;
-    countdown.textContent = formatTime(secondsLeft);
+    countdown.innerText = formatTime(secondsLeft);
 
     if (secondsLeft <= 0) {
       clearInterval(resendTimer);
       btn.classList.remove('button--send');
       btn.classList.add('button--apply');
+
+      countdown.innerText = '0:30';
+      btn.innerText = 'Send again';
     }
   }, 1000);
 }
 
 function stopTimer() {
-  const btn = document.querySelector('#btn-send-again');
+  const btn = document.querySelector('#button-send-again');
   const countdown = document.querySelector('#countdown');
 
   clearInterval(resendTimer);
   countdown.textContent = '';
   btn.classList.remove('button--apply');
   btn.classList.add('button--send');
+
+  countdown.innerText = '0:30';
+  btn.innerText = 'Send again';
 }
 
 async function sendCodeEmail(email) {
@@ -247,6 +253,21 @@ async function sendVerifyEmail(email, code) {
   }
 }
 
+async function requestConfirmPayment(email, plan) {
+  const planNumber = plan ? '1' : '2';
+  const url = `https://watermarkadder.com/api/Activation/pay/${email}/${planNumber}`;
+
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    if (!res.ok) {
+      throw new Error(`HTTP error! Status: ${''}`);
+    }
+    return await res.json();
+  } catch (err) {
+    throw err;
+  }
+}
+
 function verificationFlow() {
   const buttonEmail = document.querySelector('#button-email');
   const buttonSendAgain = document.querySelector('#button-send-again');
@@ -259,7 +280,7 @@ function verificationFlow() {
   emailInput.addEventListener('input', () => {
     const hasValue = Boolean(emailInput.value.trim());
 
-    sessionStorage.setItem('email', JSON.stringify(hasValue));
+    sessionStorage.setItem('email', JSON.stringify(emailInput.value));
     buttonEmail.classList.toggle('button--apply', hasValue);
     buttonEmail.classList.toggle('button--send', !hasValue);
   });
@@ -293,7 +314,14 @@ function verificationFlow() {
 
 
     sendVerifyEmail(email, codeInput.value)
-        .then(response => console.log('sendVerifyEmail', response));
+        .then(response => {
+
+          if(response) {
+            window.location.href = 'payment.html';
+          } else {
+            alert('Something went wrong');
+          }
+        });
   };
 
   const handleSendAgainEmailRequest = () => {
@@ -309,7 +337,7 @@ function verificationFlow() {
       return;
     }
 
-    if(buttonEmail.innerText === 'Send code to email') {
+    if(buttonSendAgain.innerText === 'Send again') {
       startTimer();
       buttonEmail.innerText = "Verify email";
       buttonSendAgain.classList.add('button--apply');
@@ -377,6 +405,73 @@ function downloadingFiles() {
   mac.addEventListener('click', async () => downloadFile('https://watermarkadder.com/api/Activation/install/mac'))
 }
 
+function activatePlan() {
+  const annual = document.querySelector('#annual');
+  const basic = document.querySelector('#basic');
+
+  if(!annual || !basic) return;
+
+  const selectedPlan = sessionStorage.getItem('selectedPlan');
+
+  if(selectedPlan) {
+
+     if(selectedPlan === '1') {
+       annual.checked = true;
+     }
+
+    if(selectedPlan === '2') {
+      basic.checked = true;
+    }
+  }
+
+  annual.addEventListener('click', () => sessionStorage.setItem('selectedPlan', '1'))
+  basic.addEventListener('click', () => sessionStorage.setItem('selectedPlan', '2'))
+}
+
+function confirmPayment() {
+  const basicPlan = document.querySelector('#basic-plan');
+  const annualPlan = document.querySelector('#annual-plan');
+  const emailCard = document.querySelector('#email-card');
+  const buttonConfirm = document.querySelector('#confirm');
+
+  if(!basicPlan || !annualPlan || !emailCard || !buttonConfirm) return;
+
+  basicPlan.style.display = 'none';
+  annualPlan.style.display = 'none';
+
+  emailCard.innerText = JSON.parse(sessionStorage.getItem('email'));
+
+  const plan = sessionStorage.getItem('plan');
+
+  if(plan === '1') {
+    annualPlan.style.display = 'block';
+  } else {
+    basicPlan.style.display = 'block';
+  }
+
+  buttonConfirm.addEventListener('click', async () => {
+
+    if(buttonConfirm.innerText === 'Please wait...') {
+      alert('Please wait...');
+      return;
+    }
+
+    buttonConfirm.innerText = 'Please wait...';
+    buttonConfirm.classList.add('button--send');
+
+    requestConfirmPayment(emailCard.innerText, plan).then((response) => {
+      buttonConfirm.classList.remove('button--send');
+      buttonConfirm.classList.add('button--apply');
+      buttonConfirm.innerText = 'Confirm purchase';
+
+      console.log('response', response.url);
+      window.open(response.url);
+    })
+  });
+}
+
+activatePlan();
+confirmPayment();
 verificationFlow();
 downloadingFiles();
 
