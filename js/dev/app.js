@@ -172,6 +172,215 @@ function menuInit() {
 }
 document.querySelector("[data-fls-menu]") ? window.addEventListener("load", menuInit) : null;
 document.body.style.paddingRight = "0px";
+
+let resendTimer = null;
+let code = null;
+
+const TIMER_DURATION = 30;
+
+function formatTime(seconds) {
+  const minutes = String(Math.floor(seconds / 60)).padStart(2, '0');
+  const secs = String(seconds % 60).padStart(2, '0');
+  return `${minutes}:${secs}`;
+}
+
+function startTimer() {
+  const btn = document.querySelector('#btn-send-again');
+  const countdown = document.querySelector('#countdown');
+
+  let secondsLeft = TIMER_DURATION;
+  countdown.textContent = formatTime(secondsLeft);
+
+  resendTimer = setInterval(() => {
+    secondsLeft--;
+    countdown.textContent = formatTime(secondsLeft);
+
+    if (secondsLeft <= 0) {
+      clearInterval(resendTimer);
+      btn.classList.remove('button--send');
+      btn.classList.add('button--apply');
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  const btn = document.querySelector('#btn-send-again');
+  const countdown = document.querySelector('#countdown');
+
+  clearInterval(resendTimer);
+  countdown.textContent = '';
+  btn.classList.remove('button--apply');
+  btn.classList.add('button--send');
+}
+
+async function sendCodeEmail(email) {
+  const url = `https://watermarkadder.com/api/Activation/send-code/${email}`;
+
+  try {
+    const res = await fetch(url, { method: 'POST' });
+    if (!res.ok) {
+      stopTimer();
+      throw new Error(`HTTP error! Status: ${res.status}`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error('Error sending verification email:', err);
+    stopTimer();
+    throw err;
+  }
+}
+
+async function sendVerifyEmail(email, code) {
+  const url = `https://watermarkadder.com/api/Activation/verify/${email}/${code}`;
+
+  try {
+    const res = await fetch(url, { method: 'POST' });
+    if (!res.ok) {
+      stopTimer();
+      throw new Error(`HTTP error! Status: ${res.status}`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error('Error sending verification email:', err);
+    stopTimer();
+    throw err;
+  }
+}
+
+function verificationFlow() {
+  const buttonEmail = document.querySelector('#button-email');
+  const buttonSendAgain = document.querySelector('#button-send-again');
+
+  const emailInput = document.querySelector('#email-input');
+  const codeInput = document.querySelector('#code-input');
+
+  if(!buttonEmail || !buttonSendAgain) return;
+
+  emailInput.addEventListener('input', () => {
+    const hasValue = Boolean(emailInput.value.trim());
+
+    sessionStorage.setItem('email', JSON.stringify(hasValue));
+    buttonEmail.classList.toggle('button--apply', hasValue);
+    buttonEmail.classList.toggle('button--send', !hasValue);
+  });
+
+  codeInput.addEventListener('input', () => {
+    const hasValue = Boolean(codeInput.value.trim());
+  });
+
+  const handleEmailRequest = () => {
+    const email = emailInput.value.trim();
+
+    if (!email) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    if(buttonEmail.innerText === 'Send code to email') {
+      startTimer();
+      buttonEmail.innerText = "Verify email";
+      buttonSendAgain.classList.add('button--apply');
+
+      sendCodeEmail(email)
+          .then(response => console.log('sendCodeEmail', response));
+      return;
+    }
+
+    if(!codeInput.value) {
+      alert('Please enter a code from email');
+      return;
+    }
+
+
+    sendVerifyEmail(email, codeInput.value)
+        .then(response => console.log('sendVerifyEmail', response));
+  };
+
+  const handleSendAgainEmailRequest = () => {
+    const email = emailInput.value.trim();
+
+    if (!email || buttonEmail.innerText === 'Send code to email') {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    if(buttonSendAgain.innerText !== 'Send again') {
+      alert('Please wait')
+      return;
+    }
+
+    if(buttonEmail.innerText === 'Send code to email') {
+      startTimer();
+      buttonEmail.innerText = "Verify email";
+      buttonSendAgain.classList.add('button--apply');
+
+      sendCodeEmail(email)
+          .then(response => console.log('sendCodeEmail', response));
+    }
+  };
+
+  buttonEmail.addEventListener("click", handleEmailRequest);
+  buttonSendAgain.addEventListener('click', handleSendAgainEmailRequest);
+}
+
+function downloadingFiles() {
+  const windows = document.querySelector('#windows');
+  const linux = document.querySelector('#linux');
+  const mac = document.querySelector('#mac');
+
+  if(!windows || !mac || !linux) return;
+
+  function filenameFromContentDisposition(header) {
+    if (!header) return null;
+    const star = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(header);
+    if (star) return decodeURIComponent(star[1]);
+    const plain = /filename\s*=\s*"([^"]+)"|filename\s*=\s*([^;]+)/i.exec(header);
+    return plain ? (plain[1] || plain[2]).trim() : null;
+  }
+
+  function filenameFromUrl(url) {
+    try {
+      const name = new URL(url).pathname.split('/').filter(Boolean).pop();
+      return name || null;
+    } catch { return null; }
+  }
+
+  async function downloadFile(url, { timeoutMs = 30_000 } = {}) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+
+    const res = await fetch(url, { method: 'GET', signal: ctrl.signal });
+    clearTimeout(t);
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
+
+    const blob = await res.blob();
+    const header = res.headers.get('Content-Disposition');
+
+    const name =
+        filenameFromContentDisposition(header) ||
+        filenameFromUrl(url) ||
+        'download';
+
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+  }
+
+  windows.addEventListener('click', async () => downloadFile('https://watermarkadder.com/api/Activation/install/windows'))
+  linux.addEventListener('click', async () => downloadFile('https://watermarkadder.com/api/Activation/install/linux'))
+  mac.addEventListener('click', async () => downloadFile('https://watermarkadder.com/api/Activation/install/mac'))
+}
+
+verificationFlow();
+downloadingFiles();
+
+
 export {
   slideUp as a,
   dataMediaQueries as d,

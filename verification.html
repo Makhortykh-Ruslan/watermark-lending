@@ -71,18 +71,18 @@
 							<div class="form-verification__items">
 								<div class="form-verification__line">
 									<label class="form-verification__label form-verification__label--active">Email</label>
-									<input data-fls-input="" autocomplete="off" type="text" name="form[]" data-error="Помилка" placeholder="Enter email" class="form-verification__input">
+									<input id="email-input" data-fls-input="" autocomplete="off" type="text" name="form[]" data-error="Помилка" placeholder="Enter email" class="form-verification__input">
 								</div>
 								<div class="form-verification__line">
 									<label class="form-verification__label">Verification code</label>
-									<input data-fls-input="" autocomplete="off" type="text" name="form[]" data-error="Помилка" placeholder="Enter email" class="form-verification__input">
+									<input id="code-input" data-fls-input="" autocomplete="off" type="text" name="form[]" data-error="Помилка" placeholder="Enter code" class="form-verification__input">
 								</div>
 							</div>
 							<div class="form-verification__actions actions-form">
-								<a href="#" data-fls-button="" class="actions-form__button button button--apply">Verify email</a>
-								<a href="#" data-fls-button="" class="actions-form__button button button--send">
+								<a id="button-email" href="#" data-fls-button="" class="actions-form__button button button--send">Send code to email</a>
+								<a id="button-send-again" href="#" data-fls-button="" class="actions-form__button button button--send">
 									Send again
-									<span>0:23</span>
+									<span id="countdown">0:30</span>
 								</a>
 							</div>
 						</form>
